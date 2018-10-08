@@ -1,7 +1,7 @@
 ---
 title: "Phase 2: Agricultural Commodity Loss Variations across the Pacific Northwest Palouse Region, 1989-2015: Missing Data Examination"
 author: "Erich Seamon"
-date: "8/25/2018"
+date: "9/25/2018"
 output:
   html_document: default
   pdf_document: default
@@ -16,17 +16,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This analysis explores the relationships of agricultural commodity loss, at a county level, from 1989-2015, for the 26 county region of the Palouse, in Washington, Idaho, and Oregon. Here we explore the entire range of commodities and damage causes, identifying the top revenue loss commodities and their most pertinent damage causes - as indicated from the USDA's agricultural commodity loss insurance archive.
 
-We perform several steps in Phase 2 to explore missing data, which is a continuation from Phase 1, steps 1-6.
+We perform several steps in Phase 2 to explore missing data, which is a continuation from Phase 1, steps 1-9.
 
-**Step 7.**  Missing Data Examination.  In this step we examine missing data in relationship to all of our factors (year, county, damagecause) for each individual commodity we are examining (wheat, apples, cherries, and dry peas)
-<br></br>
-<br></br>
-**Step 8.** Resolving missing data.  In some instances, we have missing data, and in other instances, zero value data is not missing, but rather, there is just no values/loss claims for a particular commodity or damage cause - i.e. a commodity was grown in county X, but there was no drought claims, vs. there were no drought claims becuase, the commodity itself was not grown at all.  In Step 8, we attempt to resolve missing data issues for our Step 8 analysis.
+**Step 10.**  Missing Data Examination.  In this step we examine missing data in relationship to all of our factors (year, county, damagecause) for each individual commodity we are examining (wheat, apples, cherries, and dry peas)
 <br></br>
 <br></br>
 
 
-##Step 7 & 8: Missing Data Examination and filling in select zeros as NA
+##Step 10: Missing Data Examination and filling in select zeros as NA
 
 In Steps 7 and 8, we explore the missing data by county, damage cause, and year, and then fill in missing data for damage cause where commodity loss exists in a county.  For example, if wheat is grown in a county for a particular year, but NO wheat loss claims were submitted - we consider this a zero (there where zero claims - vs this data being missing).  We do this in order to ensure that we have as complete a dataset as possible.
 
@@ -136,11 +133,13 @@ xxx_wheat <- subset(xxx, commodity == "WHEAT")
 xxx_apples <- subset(xxx, commodity == "APPLES")
 xxx_cherries <- subset(xxx, commodity == "CHERRIES")
 xxx_drypeas <- subset(xxx, commodity == "DRY PEAS")
+xxx_barley <- subset(xxx, commodity == "BARLEY")
 
 palouse_sumloss_aggregate_apples <- xxx_apples
 palouse_sumloss_aggregate_cherries <- xxx_cherries
 palouse_sumloss_aggregate_drypeas <- xxx_drypeas
 palouse_sumloss_aggregate_wheat <- xxx_wheat
+palouse_sumloss_aggregate_barley <- xxx_barley
 
 #-remove counties for each commodity file that have considerable missing data.  
 #the reasoning is that those counties that have very little of the commodity in question
@@ -153,6 +152,12 @@ palouse_sumloss_aggregate_apples <- subset(palouse_sumloss_aggregate_apples,
                                            county != "Columbia" & county != "Wasco")
 palouse_sumloss_aggregate_apples$county <- 
   factor(palouse_sumloss_aggregate_apples$county)
+
+palouse_sumloss_aggregate_apples <- 
+  subset(palouse_sumloss_aggregate_apples, damagecause != "Drought")
+palouse_sumloss_aggregate_apples$damagecause <- 
+  factor(palouse_sumloss_aggregate_apples$damagecause)
+
 
 palouse_sumloss_aggregate_wheat <- 
   subset(palouse_sumloss_aggregate_wheat, county != "Kootenai")
@@ -170,12 +175,24 @@ palouse_sumloss_aggregate_drypeas <-
 palouse_sumloss_aggregate_drypeas$county <- 
   factor(palouse_sumloss_aggregate_drypeas$county)
 
+palouse_sumloss_aggregate_barley <- 
+  subset(palouse_sumloss_aggregate_barley, county != "Douglas" & county != "Garfield"
+         & county != "Gilliam" & county != "Adams" & county != "Kootenai" & county != "Benton")
+palouse_sumloss_aggregate_barley$county <- 
+  factor(palouse_sumloss_aggregate_barley$county)
+
+palouse_sumloss_aggregate_barley <- 
+  subset(palouse_sumloss_aggregate_barley, damagecause != "Cold Winter")
+palouse_sumloss_aggregate_barley$damagecause <- 
+  factor(palouse_sumloss_aggregate_barley$damagecause)
+
 #re-factor 
 
 palouse_sumloss_aggregate_apples$damagecause <- factor(palouse_sumloss_aggregate_apples$damagecause)
 palouse_sumloss_aggregate_wheat$damagecause <- factor(palouse_sumloss_aggregate_wheat$damagecause)
 palouse_sumloss_aggregate_cherries$damagecause <- factor(palouse_sumloss_aggregate_cherries$damagecause)
 palouse_sumloss_aggregate_drypeas$damagecause <- factor(palouse_sumloss_aggregate_drypeas$damagecause)
+palouse_sumloss_aggregate_barley$damagecause <- factor(palouse_sumloss_aggregate_barley$damagecause)
 
 ```
 
@@ -237,6 +254,21 @@ ezDesign(palouse_sumloss_aggregate_drypeas, county, commodity)
 ezDesign(palouse_sumloss_aggregate_drypeas, county, damagecause)
 
 ```
+
+
+###BARLEY Missing Data examination by damage cause, year, and county, using two dimensions
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+#examine missing data after narrowing commodities and damage causes to the most relevant
+ezDesign(palouse_sumloss_aggregate_barley, year, damagecause)
+ezDesign(palouse_sumloss_aggregate_barley, year, county)
+ezDesign(palouse_sumloss_aggregate_barley, year, commodity)
+ezDesign(palouse_sumloss_aggregate_barley, county, commodity)
+ezDesign(palouse_sumloss_aggregate_barley, county, damagecause)
+
+```
+
 
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}

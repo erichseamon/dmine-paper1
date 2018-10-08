@@ -1,0 +1,466 @@
+---
+title: "Phase 3: WHEAT Agricultural Commodity Loss Variations across the Pacific Northwest Palouse Region, 1989-2015 - Mixed Modeling Analysis"
+author: "Erich Seamon"
+date: "9/25/2018"
+output:
+  html_document: default
+  pdf_document: default
+params:
+  output_dir: /dmine/code/git/dmine-paper1/
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Introduction
+
+This analysis explores the relationships of agricultural commodity loss, at a county level, from 1989-2015, for the 26 county region of the Palouse, in Washington, Idaho, and Oregon. Here we explore the entire range of commodities and damage causes, identifying the top revenue loss commodities and their most pertinent damage causes - as indicated from the USDA's agricultural commodity loss insurance archive.
+
+In Phase 3, we perform WHEAT mixed modeling analysis using a two-step hurdle technique for a selected set of damage causes.  The following analysis builds on Phases 1 and 2, steps 1-10.
+
+**Step 10.** WHEAT Commodity Mixed Model Analysis.  In Step 11, we perform a WHEAT mixed modeling analysis, using a two step hurdle model technique to address zero-inflated data.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+library(car)
+library(RCurl)
+library(lme4)
+library(ez)
+library(lattice)
+library(ggplot2)
+library(coefplot2)
+library(broom)
+
+#options(scipen=999)
+
+#-load data
+Southern_ID_sumloss <- read.csv(text=getURL
+("https://raw.githubusercontent.com/erichseamon/dmine_anova/master/PNW_summary_all.csv"), 
+header = TRUE)
+Southern_ID_sumloss_all_sum  <- aggregate(loss ~ year + 
+                                            damagecause + county + commodity,  
+                                          Southern_ID_sumloss, sum)
+Southern_ID_count_all_count  <- aggregate(count ~ year + 
+                                            damagecause + county + commodity,  
+                                          Southern_ID_sumloss, sum)
+Southern_ID_sumloss_all_sum <- 
+  Southern_ID_sumloss_all_sum[Southern_ID_sumloss_all_sum$loss >= 1, ]
+
+#-Loading all WHEAT claims for the palouse from 1989-2015
+palouse_sumloss <- read.csv(text=getURL
+("https://raw.githubusercontent.com/erichseamon/dmine_anova/master/Palouse_summary_sumloss.csv"), 
+header = TRUE)
+palouse_counts <- read.csv(text=getURL
+("https://raw.githubusercontent.com/erichseamon/dmine_anova/master/Palouse_summary_counts.csv"), 
+header = TRUE)
+
+#use a cube transformation on loss for WHEAT claims
+Math.cbrt <- function(x) {
+  sign(x) * abs(x)^(1/3)
+}
+
+Southern_ID_sumloss_all_sum$cube_loss <- Math.cbrt(Southern_ID_sumloss_all_sum$loss)
+Southern_ID_count_all_count$cube_counts <- Math.cbrt(Southern_ID_count_all_count$count)
+
+#--aggregate palouse
+palouse_sumloss_aggregate <- aggregate(loss ~ damagecause + year + commodity + county, 
+                                       palouse_sumloss, mean)
+
+#-calculate cube loss
+palouse_sumloss_aggregate$cube_loss <- Math.cbrt(palouse_sumloss_aggregate$loss)
+
+#-remove zeros
+palouse_sumloss_aggregate <- subset(palouse_sumloss_aggregate, loss > 0)
+
+#-use a log transform 
+
+palouse_sumloss_aggregate$log10_loss <- log10(palouse_sumloss_aggregate$loss)
+palouse_sumloss_aggregate$log_loss <- log(palouse_sumloss_aggregate$loss)
+
+#-inverse transform
+palouse_sumloss_aggregate$inverse_loss <- 1/palouse_sumloss_aggregate$loss
+
+#sq root transformation
+palouse_sumloss_aggregate$sqroot_loss <- sqrt(palouse_sumloss_aggregate$loss)
+
+#--scale and center
+palouse_sumloss_aggregate$scaled_cube_loss <- scale(palouse_sumloss_aggregate$cube_loss)
+palouse_sumloss_aggregate$scaled_inverse_loss <- 
+  scale(palouse_sumloss_aggregate$inverse_loss, center = TRUE, scale = TRUE)
+
+#---------
+
+#--reduce years to 2001-2015
+xxyear <- subset(palouse_sumloss_aggregate, year >= 2001)
+
+#missing data review of data from 2001-2015 for all commodities and all damage causes
+#ezDesign(xxyear, year, damagecause)
+#ezDesign(xxyear, county, damagecause)
+#ezDesign(xxyear, county, commodity)
+
+#Now lets subset by the four main commodities of interest.
+#--subset to four commodities - Barley, Wheat, Apples, and Dry Peas
+xx <- subset(xxyear, commodity == "BARLEY" | commodity == "WHEAT" | 
+               commodity == "APPLES" | commodity == "DRY PEAS" | commodity == "CHERRIES")
+
+#--subset to a select set of damage causes - Drought, Heat, Hail, Frost, Freeze, Excessive Moisture, Cold Winter, Cold Weather, and Decline in Price
+xxx <- subset(xx, damagecause == "Drought" | damagecause == "Heat" | 
+                damagecause == "Hail" | damagecause == "Frost" | damagecause == "Freeze" | damagecause == "Excessive Moisture/Precip/Rain" | damagecause == "Cold Winter" | 
+                damagecause == "Cold Wet Weather" | damagecause == "Decline in Price")
+
+
+#examine missing data after narrowing commodities and damage causes to the most relevant
+#ezDesign(xxx, year, damagecause)
+#ezDesign(xxx, county, year)
+#ezDesign(xxx, county, damagecause)
+#ezDesign(xxx, year, commodity)
+#ezDesign(xxx, county, commodity)
+
+#now lets divide the data into four different model files that are commodity specific.
+xxx_wheat <- subset(xxx, commodity == "WHEAT")
+xxx_apples <- subset(xxx, commodity == "APPLES")
+xxx_cherries <- subset(xxx, commodity == "CHERRIES")
+xxx_drypeas <- subset(xxx, commodity == "DRY PEAS")
+xxx_barley <- subset(xxx, commodity == "BARLEY")
+
+palouse_sumloss_aggregate_apples <- xxx_apples
+palouse_sumloss_aggregate_cherries <- xxx_cherries
+palouse_sumloss_aggregate_drypeas <- xxx_drypeas
+palouse_sumloss_aggregate_wheat <- xxx_wheat
+palouse_sumloss_aggregate_barley <- xxx_barley
+
+#-remove counties for each commodity file that have considerable missing data.  
+#the reasoning is that those counties that have very little of the commodity in question
+#may be inappropriate to fill in data as zero.  While there are sporadic commodity loss
+#for these counties, there is a high liklihood that this commodity may NOT be grown
+#for the missing years, vs just no commodity loss claims.  So we remove these select
+#counties given the EzDesign data review of each commodity file
+
+palouse_sumloss_aggregate_apples <- subset(palouse_sumloss_aggregate_apples, 
+                                           county != "Columbia" & county != "Wasco")
+palouse_sumloss_aggregate_apples$county <- 
+  factor(palouse_sumloss_aggregate_apples$county)
+
+palouse_sumloss_aggregate_apples <- 
+  subset(palouse_sumloss_aggregate_apples, damagecause != "Drought")
+palouse_sumloss_aggregate_apples$damagecause <- 
+  factor(palouse_sumloss_aggregate_apples$damagecause)
+
+
+palouse_sumloss_aggregate_wheat <- 
+  subset(palouse_sumloss_aggregate_wheat, county != "Kootenai")
+palouse_sumloss_aggregate_wheat$county <- 
+  factor(palouse_sumloss_aggregate_wheat$county)
+
+palouse_sumloss_aggregate_cherries <- 
+  subset(palouse_sumloss_aggregate_cherries, county != "Adams" & county != "Union")
+palouse_sumloss_aggregate_cherries$county <- 
+  factor(palouse_sumloss_aggregate_cherries$county)
+
+palouse_sumloss_aggregate_drypeas <- 
+  subset(palouse_sumloss_aggregate_drypeas, county != "Douglas" 
+         & county != "Gilliam" & county != "Adams")
+palouse_sumloss_aggregate_drypeas$county <- 
+  factor(palouse_sumloss_aggregate_drypeas$county)
+
+palouse_sumloss_aggregate_barley <- 
+  subset(palouse_sumloss_aggregate_barley, county != "Douglas" & county != "Garfield"
+         & county != "Gilliam" & county != "Adams" & county != "Kootenai" & county != "Benton")
+palouse_sumloss_aggregate_barley$county <- 
+  factor(palouse_sumloss_aggregate_barley$county)
+
+palouse_sumloss_aggregate_barley <- 
+  subset(palouse_sumloss_aggregate_barley, damagecause != "Cold Winter")
+palouse_sumloss_aggregate_barley$damagecause <- 
+  factor(palouse_sumloss_aggregate_barley$damagecause)
+
+#re-factor 
+
+palouse_sumloss_aggregate_apples$damagecause <- factor(palouse_sumloss_aggregate_apples$damagecause)
+palouse_sumloss_aggregate_wheat$damagecause <- factor(palouse_sumloss_aggregate_wheat$damagecause)
+palouse_sumloss_aggregate_cherries$damagecause <- factor(palouse_sumloss_aggregate_cherries$damagecause)
+palouse_sumloss_aggregate_drypeas$damagecause <- factor(palouse_sumloss_aggregate_drypeas$damagecause)
+palouse_sumloss_aggregate_barley$damagecause <- factor(palouse_sumloss_aggregate_barley$damagecause)
+
+
+
+#-----------
+
+#--Prepare and Fill in missing data
+palouse_sumloss_aggregate$year <- as.numeric(palouse_sumloss_aggregate$year)
+palouse_sumloss_aggregate_apples$year <- as.numeric(palouse_sumloss_aggregate_apples$year)
+palouse_sumloss_aggregate_wheat$year <- as.numeric(palouse_sumloss_aggregate_wheat$year)
+palouse_sumloss_aggregate_drypeas$year <- as.numeric(palouse_sumloss_aggregate_drypeas$year)
+palouse_sumloss_aggregate_cherries$year <- as.numeric(palouse_sumloss_aggregate_cherries$year)
+palouse_sumloss_aggregate_barley$year <- as.numeric(palouse_sumloss_aggregate_barley$year)
+
+#-turn year into character value
+palouse_sumloss_aggregate_apples$year <- as.character(palouse_sumloss_aggregate_apples$year)
+palouse_sumloss_aggregate_wheat$year <- as.character(palouse_sumloss_aggregate_wheat$year)
+palouse_sumloss_aggregate_drypeas$year <- as.character(palouse_sumloss_aggregate_drypeas$year)
+palouse_sumloss_aggregate_cherries$year <- as.character(palouse_sumloss_aggregate_cherries$year)
+palouse_sumloss_aggregate_barley$year <- as.character(palouse_sumloss_aggregate_barley$year)
+
+#-factor all group variables for each of the four commodities
+palouse_sumloss_aggregate_apples$year <- factor(palouse_sumloss_aggregate_apples$year)
+palouse_sumloss_aggregate_wheat$year <- factor(palouse_sumloss_aggregate_wheat$year)
+palouse_sumloss_aggregate_drypeas$year <- factor(palouse_sumloss_aggregate_drypeas$year)
+palouse_sumloss_aggregate_cherries$year <- factor(palouse_sumloss_aggregate_cherries$year)
+palouse_sumloss_aggregate_barley$year <- factor(palouse_sumloss_aggregate_barley$year)
+
+palouse_sumloss_aggregate_apples$damagecause <- factor(palouse_sumloss_aggregate_apples$damagecause)
+palouse_sumloss_aggregate_wheat$damagecause <- factor(palouse_sumloss_aggregate_wheat$damagecause)
+palouse_sumloss_aggregate_drypeas$damagecause <- factor(palouse_sumloss_aggregate_drypeas$damagecause)
+palouse_sumloss_aggregate_cherries$damagecause <- factor(palouse_sumloss_aggregate_cherries$damagecause)
+palouse_sumloss_aggregate_barley$damagecause <- factor(palouse_sumloss_aggregate_barley$damagecause)
+
+palouse_sumloss_aggregate_apples$commodity <- factor(palouse_sumloss_aggregate_apples$commodity)
+palouse_sumloss_aggregate_wheat$commodity <- factor(palouse_sumloss_aggregate_wheat$commodity)
+palouse_sumloss_aggregate_drypeas$commodity <- factor(palouse_sumloss_aggregate_drypeas$commodity)
+palouse_sumloss_aggregate_cherries$commodity <- factor(palouse_sumloss_aggregate_cherries$commodity)
+palouse_sumloss_aggregate_barley$commodity <- factor(palouse_sumloss_aggregate_barley$commodity)
+
+palouse_sumloss_aggregate_apples$county <- factor(palouse_sumloss_aggregate_apples$county)
+palouse_sumloss_aggregate_wheat$county <- factor(palouse_sumloss_aggregate_wheat$county)
+palouse_sumloss_aggregate_drypeas$county <- factor(palouse_sumloss_aggregate_drypeas$county)
+palouse_sumloss_aggregate_cherries$county <- factor(palouse_sumloss_aggregate_cherries$county)
+palouse_sumloss_aggregate_barley$county <- factor(palouse_sumloss_aggregate_barley$county)
+
+#--create rows for missing data
+alllevs_apples <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_apples[c("damagecause", "year", 
+                                          "county", "commodity")], levels))
+alllevs_wheat <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_wheat[c("damagecause", "year", 
+                                         "county", "commodity")], levels))
+alllevs_drypeas <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_drypeas[c("damagecause", "year", 
+                                           "county", "commodity")], levels))
+alllevs_cherries <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_cherries[c("damagecause", "year", 
+                                            "county", "commodity")], levels))
+
+alllevs_barley <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_barley[c("damagecause", "year", 
+                                            "county", "commodity")], levels))
+
+alllevs2_drypeas <- merge(palouse_sumloss_aggregate_drypeas, alllevs_drypeas, all.y=TRUE)
+alllevs2_drypeas$loss[is.na(alllevs2_drypeas$loss)] <- 0
+alllevs2_drypeas$cube_loss[is.na(alllevs2_drypeas$cube_loss)] <- 0
+alllevs2_drypeas$log10_loss[is.na(alllevs2_drypeas$log10_loss)] <- 0
+
+
+alllevs2_apples <- merge(palouse_sumloss_aggregate_apples, alllevs_apples, all.y=TRUE)
+alllevs2_apples$loss[is.na(alllevs2_apples$loss)] <- 0
+alllevs2_apples$cube_loss[is.na(alllevs2_apples$cube_loss)] <- 0
+alllevs2_apples$log10_loss[is.na(alllevs2_apples$log10_loss)] <- 0
+
+
+alllevs2_wheat <- merge(palouse_sumloss_aggregate_wheat, alllevs_wheat, all.y=TRUE)
+alllevs2_wheat$loss[is.na(alllevs2_wheat$loss)] <- 0
+alllevs2_wheat$cube_loss[is.na(alllevs2_wheat$cube_loss)] <- 0
+alllevs2_wheat$log10_loss[is.na(alllevs2_wheat$log10_loss)] <- 0
+
+alllevs2_cherries <- merge(palouse_sumloss_aggregate_cherries, alllevs_cherries, all.y=TRUE)
+alllevs2_cherries$loss[is.na(alllevs2_cherries$loss)] <- 0
+alllevs2_cherries$cube_loss[is.na(alllevs2_cherries$cube_loss)] <- 0
+alllevs2_cherries$log10_loss[is.na(alllevs2_cherries$log10_loss)] <- 0
+
+alllevs2_barley <- merge(palouse_sumloss_aggregate_barley, alllevs_barley, all.y=TRUE)
+alllevs2_barley$loss[is.na(alllevs2_barley$loss)] <- 0
+alllevs2_barley$cube_loss[is.na(alllevs2_barley$cube_loss)] <- 0
+alllevs2_barley$log10_loss[is.na(alllevs2_barley$log10_loss)] <- 0
+
+#testing the frequency of damagecauses for apples
+alllevs4_apples <- subset(alllevs2_apples, loss != 0.000000)
+alllevs4_apples <- aggregate(alllevs4_apples$loss, by = list(alllevs4_apples$damagecause), FUN = length)
+
+#remove drought!  there is only one claim for drought for apples! 
+alllevs2_apples <- subset(alllevs2_apples, damagecause != "Drought")
+
+#testing the frequency of damagecauses for wheat
+alllevs4_wheat <- subset(alllevs2_wheat, loss != 0.000000)
+alllevs4_wheat <- aggregate(alllevs4_wheat$loss, by = list(alllevs4_wheat$year, alllevs4_wheat$county), FUN = length)
+
+
+
+```
+
+
+##Step 9: Hurdle Mixed Models
+
+Hurdle model techniques allow us to address zero inflated datasets, by first running a logstical regression model to determine the probability of zeros occuring.  Then we use the non-zero values in a separate, mixed model.  In this instance, we use county as a random effect.
+
+In our two part hurdle model, we identify zero values - that is, counties and years that have zero loss for particular damage causes for apples.  Previously we removed counties that we have determined have no apples being grown - based on known crop yield data.  The counties we are identifying are those where we KNOW apples are being grown, but in some instances, there are no loss claims being filed in particular years.  
+
+As such, these are not missing data, but actual zero values that we do not want to exclude from our model.  However we want to be able to use a normalized distribution that is not positively skewed/zero inflated.
+
+
+
+<br></br>
+
+##Hurdle Model - WHEAT
+
+Here we run our hurdle technique for WHEAT, using a generalized linear model with a binomal function to delineate between zero and non-zero values. Given this model,  Is our data normally distributed?  What (if any) outliers exist?  Are residuals well distributed - indicating normality?
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+# try hurdle model:
+alllevs2_wheat$non_zero<-as.numeric(alllevs2_wheat$loss!=0)
+
+#alllevs2_wheat <- na.omit(alllevs2_wheat)
+
+m1 <- glm(non_zero ~  year + damagecause * county, data = alllevs2_wheat, family = binomial(link = logit))
+
+
+# checking goodness of fit
+library(pscl)
+library(ResourceSelection)
+library(broom)
+pR2(m1)
+hoslem.test(alllevs2_wheat$non_zero, fitted(m1))
+```
+
+<br></br>
+<center>
+**FIGURE 12:** Wheat Non-zero Goodness of fit hoslem test
+</center>
+<br></br>
+
+Now plot this Wheat zero/non-zero bionomal model to see outliers and the zeros vs non-zeros.
+
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+#check for outliers
+plot(m1, which = 4, id.n = 3)
+
+#alllevs3_wheat <- na.omit(alllevs2_wheat)
+
+model.data<-augment(m1, data=alllevs2_wheat)
+ggplot(model.data, aes(rownames(alllevs2_wheat), .std.resid)) + 
+  geom_point(aes(color = non_zero), alpha = .5) +
+  theme_bw()+expand_limits(y=c(-3,3))+scale_y_continuous(breaks=seq(-3, 3, 1))
+
+```
+<br></br>
+<center>
+**FIGURE 13:** Apples zero/non-zero bionomal model to see outliers and zeros values vs non-zero values.
+<br></br>
+
+
+
+###Checking for multi collinearity
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+
+# check fgr multicollinearity
+round(vif(m1),3)
+
+```
+<br></br>
+<center>
+**FIGURE 14:** Wheat multi-collinearity test for our binomal model.
+</center>
+<br></br>
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+# results
+#summary(m1)
+d1 <- data.frame(summary(m1)$coef[summary(m1)$coef[,4] <= .05, 4])
+colnames(d1) <- c("pvalue")
+print(d1)
+
+```
+<br></br>
+
+<center>
+**FIGURE 14:** Wheat binomal model summary
+</center>
+<br></br>
+
+##Now subset to just those WHEAT observations with a loss greater than zero (so all non-zeros), and run a linear regression (switched to log loss due to outliers), to make sure that our residuals and other parameters suggest normality.
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+m2 <- lmer(log(loss) ~ year + damagecause + (1 | county), data = subset(alllevs2_wheat, non_zero == 1))
+
+summary(m2)
+
+```
+
+
+<br></br>
+
+<center>
+**FIGURE 18:** Wheat mixed model coefficient estimates for damage cause and year.
+</center>
+<br></br>
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+plot(m2)
+
+```
+
+
+<br></br>
+
+<center>
+**FIGURE 19:** Wheat mixed model coefficient estimates for damage cause and year.
+</center>
+<br></br>
+
+#We examine the Wheat model coefficent estimates of our model output.
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+coefplot2(m2)
+
+```
+
+
+<br></br>
+
+<center>
+**FIGURE 19:** Wheat mixed model coefficient estimates.
+</center>
+<br></br>
+
+#Finally, we exponentiate the coefficient estimates and confidence intervals for odds ratios.
+
+```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
+
+coef_wheat <- as.data.frame(summary(m2)$coefficients[,1:2])
+coef_wheat <- coef_wheat[2:nrow(coef_wheat),]
+confint_wheat <- as.data.frame(confint(m2))                        
+confint_wheat <- confint_wheat[4:nrow(confint_wheat),]
+
+coef_wheat2 <- cbind(confint_wheat, coef_wheat)
+coef_wheat_exp <- exp(coef_wheat2)
+colnames(coef_wheat_exp) <- c("lower", "upper", "estimate", "stderror")
+coef_wheat_exp$lower <- as.numeric(coef_wheat_exp$lower)
+coef_wheat_exp$upper <- as.numeric(coef_wheat_exp$upper)
+coef_wheat_exp$estimate <- as.numeric(coef_wheat_exp$estimate)
+coef_wheat_exp$stderror <- as.numeric(coef_wheat_exp$stderror)
+
+library(data.table)
+setDT(coef_wheat_exp, keep.rownames = TRUE)[]
+
+#library(lattice)
+#var <- factor(rownames(coef_wheat_exp[1:4]))
+#boxplot(lower+upper~rn, data=coef_wheat_exp, las = 2, horizontal = TRUE)
+
+ggplot(coef_wheat_exp, aes(x = rn, y = estimate)) +
+  geom_point(size = 4) + coord_flip() +
+  geom_errorbar(aes(ymax = upper, ymin = lower)) + ggtitle("Palouse Region Wheat \n Odds Ratios of Year and Damage Cause")           
+```
+<br></br>
+
+<center>
+**FIGURE 20:** Wheat mixed model odds ratios.
+</center>
+
+<br></br>
