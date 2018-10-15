@@ -16,9 +16,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This analysis explores the relationships of agricultural commodity loss, at a county level, from 1989-2015, for the 26 county region of the Palouse, in Washington, Idaho, and Oregon. Here we explore the entire range of commodities and damage causes, identifying the top revenue loss commodities and their most pertinent damage causes - as indicated from the USDA's agricultural commodity loss insurance archive.
 
-In Phase 3, we perform an APPLES mixed modeling analysis using a two-step hurdle technique, for a selected set of damage causes.  The following analysis builds on Phases 1 and 2, steps 1-10.
+##Phase 3
 
-**Step 11.** APPLES Commodity Mixed Model Analysis.  In Step 11, we perform a mixed modeling analysis on APPLES, using a two step hurdle model technique to address zero-inflated data.
+In Phase 3, we perform a APPLES mixed modeling analysis using a two-step hurdle technique, for a selected set of damage causes.  The following analysis builds on Phases 1 and 2.
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -276,7 +276,7 @@ alllevs4_apples <- subset(alllevs2_apples, loss != 0.000000)
 alllevs4_apples <- aggregate(alllevs4_apples$loss, by = list(alllevs4_apples$damagecause), FUN = length)
 
 #remove drought!  there is only one claim for drought for apples! 
-alllevs2_apples <- subset(alllevs2_apples, damagecause != "Drought")
+#alllevs2_apples <- subset(alllevs2_apples, damagecause != "Drought")
 
 #testing the frequency of damagecauses for wheat
 alllevs4_wheat <- subset(alllevs2_wheat, loss != 0.000000)
@@ -287,7 +287,7 @@ alllevs4_wheat <- aggregate(alllevs4_wheat$loss, by = list(alllevs4_wheat$year, 
 ```
 
 
-##Step 9: Hurdle Mixed Models
+##Hurdle Mixed Models
 
 Hurdle model techniques allow us to address zero inflated datasets, by first running a logstical regression model to determine the probability of zeros occuring.  Then we use the non-zero values in a separate, mixed model.  In this instance, we use county as a random effect.
 
@@ -303,12 +303,14 @@ As such, these are not missing data, but actual zero values that we do not want 
 
 Here we run our hurdle technique for APPLES, using a generalized linear model with a binomal function to delineate between zero and non-zero values. Given this model,  Is our data normally distributed?  What (if any) outliers exist?  Are residuals well distributed - indicating normality?
 
+###Apples Non-zero Goodness of fit hoslem test
+
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
 # try hurdle model:
 alllevs2_apples$non_zero<-as.numeric(alllevs2_apples$loss!=0)
 
-m1 <- glm(non_zero ~  year + damagecause * county, data = alllevs2_apples, family = binomial(link = logit))
+m1 <- glm(non_zero ~  year + damagecause + county, data = alllevs2_apples, family = binomial(link = logit))
 
 # checking goodness of fit
 library(pscl)
@@ -317,16 +319,14 @@ library(broom)
 pR2(m1)
 hoslem.test(alllevs2_apples$non_zero, fitted(m1))
 
+chisq.test(alllevs2_apples$non_zero, fitted(m1))
+
 
 ```
 
 <br></br>
-<center>
-**FIGURE 12:** Apples Non-zero Goodness of fit hoslem test
-</center>
-<br></br>
 
-Now plot this Apples zero/non-zero bionomal model to see outliers and the zeros vs non-zeros.
+###Apples zero/non-zero bionomal model to see outliers and zeros values vs non-zero values
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
@@ -340,10 +340,10 @@ ggplot(model.data, aes(rownames(alllevs2_apples), .std.resid)) +
 
 
 ```
+
 <br></br>
-<center>
-**FIGURE 13:** Apples zero/non-zero bionomal model to see outliers and zeros values vs non-zero values.
-<br></br>
+
+###Apples multi-collinearity test for our binomal model
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
@@ -352,12 +352,9 @@ round(vif(m1),3)
 
 ```
 
+<br></br>
 
-<br></br>
-<center>
-**FIGURE 14:** Apples multi-collinearity test for our binomal model.
-</center>
-<br></br>
+###Apples binomal model summary for only significant factors
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
@@ -368,14 +365,12 @@ colnames(d1) <- c("pvalue")
 print(d1)
 
 ```
+
 <br></br>
 
-<center>
-**FIGURE 14:** Apples binomal model summary
-</center>
-<br></br>
+###Apples mixed model coefficient estimates for damage cause and year
 
-##Now subset to just those APPLES observations with a loss greater than zero (so all non-zeros), and run a linear regression (switched to log loss due to outliers), to make sure that our residuals and other parameters suggest normality.
+Now subset to just those APPLES observations with a loss greater than zero (so all non-zeros), and run a linear regression (switched to log loss due to outliers), to make sure that our residuals and other parameters suggest normality.
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
@@ -384,40 +379,30 @@ m2 <- lmer(log(loss) ~ year + damagecause + (1 | county), data = subset(alllevs2
 summary(m2)
 
 ```
+
 <br></br>
 
-<center>
-**FIGURE 18:** Apples mixed model coefficient estimates for damage cause and year.
-</center>
-<br></br>
+###Residuals vs fitted values
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
 plot(m2)
 
 ```
+
 <br></br>
 
-<center>
-**FIGURE 19:** Apples mixed model coefficient estimates for damage cause and year.
-</center>
-<br></br>
-
-#Finally, we examine the APPLES model coefficent estimates of our model output.
+###We examine the APPLES model coefficent estimates of our model output.
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
 coefplot2(m2)
 
 ```
+
 <br></br>
 
-<center>
-**FIGURE 19:** Apples mixed model coefficient estimates.
-</center>
-<br></br>
-
-#Finally, we exponentiate the coefficient estimates and confidence intervals for odds ratios.
+###Finally, we exponentiate the coefficient estimates and confidence intervals for odds ratios.
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
@@ -436,19 +421,16 @@ coef_apples_exp$stderror <- as.numeric(coef_apples_exp$stderror)
 
 library(data.table)
 setDT(coef_apples_exp, keep.rownames = TRUE)[]
+colnames(coef_apples_exp) <- c("factors", "lower", "upper", "odds_ratio", "stderror")
 
 #library(lattice)
 #var <- factor(rownames(coef_apples_exp[1:4]))
 #boxplot(lower+upper~rn, data=coef_apples_exp, las = 2, horizontal = TRUE)
 
-ggplot(coef_apples_exp, aes(x = rn, y = estimate)) +
+ggplot(coef_apples_exp, aes(x = factors, y = odds_ratio)) +
   geom_point(size = 4) + coord_flip() +
-  geom_errorbar(aes(ymax = upper, ymin = lower)) + ggtitle("Palouse Region Apples \n Odds Ratios of Year and Damage Cause") 
+  geom_errorbar(aes(ymax = upper, ymin = lower)) + ggtitle("Palouse Region Apples \n Odds Ratios of Year and Damage Cause") + theme(plot.title = element_text(hjust = 0.5))
 ```
-<br></br>
 
-<center>
-**FIGURE 20:** Apples mixed model odds ratios.
-</center>
 
 <br></br>

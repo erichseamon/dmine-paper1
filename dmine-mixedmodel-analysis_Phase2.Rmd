@@ -194,6 +194,79 @@ palouse_sumloss_aggregate_cherries$damagecause <- factor(palouse_sumloss_aggrega
 palouse_sumloss_aggregate_drypeas$damagecause <- factor(palouse_sumloss_aggregate_drypeas$damagecause)
 palouse_sumloss_aggregate_barley$damagecause <- factor(palouse_sumloss_aggregate_barley$damagecause)
 
+palouse_sumloss_aggregate_wheat$commodity<- factor(palouse_sumloss_aggregate_wheat$commodity)
+palouse_sumloss_aggregate_apples$commodity <- factor(palouse_sumloss_aggregate_apples$commodity)
+palouse_sumloss_aggregate_barley$commodity <- factor(palouse_sumloss_aggregate_barley$commodity)
+palouse_sumloss_aggregate_cherries$commodity <- factor(palouse_sumloss_aggregate_cherries$commodity)
+palouse_sumloss_aggregate_drypeas$commodity <- factor(palouse_sumloss_aggregate_drypeas$commodity)
+
+palouse_sumloss_aggregate_wheat$year <- factor(palouse_sumloss_aggregate_wheat$year)
+palouse_sumloss_aggregate_apples$year <- factor(palouse_sumloss_aggregate_apples$year)
+palouse_sumloss_aggregate_barley$year <- factor(palouse_sumloss_aggregate_barley$year)
+palouse_sumloss_aggregate_cherries$year <- factor(palouse_sumloss_aggregate_cherries$year)
+palouse_sumloss_aggregate_drypeas$year <- factor(palouse_sumloss_aggregate_drypeas$year)
+
+
+
+#--create rows for missing data
+alllevs_apples <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_apples[c("damagecause", "year", 
+                                          "county", "commodity")], levels))
+alllevs_wheat <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_wheat[c("damagecause", "year", 
+                                         "county", "commodity")], levels))
+alllevs_drypeas <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_drypeas[c("damagecause", "year", 
+                                           "county", "commodity")], levels))
+alllevs_cherries <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_cherries[c("damagecause", "year", 
+                                            "county", "commodity")], levels))
+
+alllevs_barley <- do.call(expand.grid, 
+lapply(palouse_sumloss_aggregate_barley[c("damagecause", "year", 
+                                            "county", "commodity")], levels))
+
+alllevs2_drypeas <- merge(palouse_sumloss_aggregate_drypeas, alllevs_drypeas, all.y=TRUE)
+alllevs2_drypeas$loss[is.na(alllevs2_drypeas$loss)] <- 0
+alllevs2_drypeas$cube_loss[is.na(alllevs2_drypeas$cube_loss)] <- 0
+alllevs2_drypeas$log10_loss[is.na(alllevs2_drypeas$log10_loss)] <- 0
+
+
+alllevs2_apples <- merge(palouse_sumloss_aggregate_apples, alllevs_apples, all.y=TRUE)
+alllevs2_apples$loss[is.na(alllevs2_apples$loss)] <- 0
+alllevs2_apples$cube_loss[is.na(alllevs2_apples$cube_loss)] <- 0
+alllevs2_apples$log10_loss[is.na(alllevs2_apples$log10_loss)] <- 0
+
+
+alllevs2_wheat <- merge(palouse_sumloss_aggregate_wheat, alllevs_wheat, all.y=TRUE)
+alllevs2_wheat$loss[is.na(alllevs2_wheat$loss)] <- 0
+alllevs2_wheat$cube_loss[is.na(alllevs2_wheat$cube_loss)] <- 0
+alllevs2_wheat$log10_loss[is.na(alllevs2_wheat$log10_loss)] <- 0
+
+alllevs2_cherries <- merge(palouse_sumloss_aggregate_cherries, alllevs_cherries, all.y=TRUE)
+alllevs2_cherries$loss[is.na(alllevs2_cherries$loss)] <- 0
+alllevs2_cherries$cube_loss[is.na(alllevs2_cherries$cube_loss)] <- 0
+alllevs2_cherries$log10_loss[is.na(alllevs2_cherries$log10_loss)] <- 0
+
+alllevs2_barley <- merge(palouse_sumloss_aggregate_barley, alllevs_barley, all.y=TRUE)
+alllevs2_barley$loss[is.na(alllevs2_barley$loss)] <- 0
+alllevs2_barley$cube_loss[is.na(alllevs2_barley$cube_loss)] <- 0
+alllevs2_barley$log10_loss[is.na(alllevs2_barley$log10_loss)] <- 0
+
+#testing the frequency of damagecauses for apples
+#alllevs4_apples <- subset(alllevs2_apples, loss != 0.000000)
+#alllevs4_apples <- aggregate(alllevs4_apples$loss, by = list(alllevs4_apples$damagecause), FUN = length)
+
+#remove drought!  there is only one claim for drought for apples! 
+#alllevs2_apples <- subset(alllevs2_apples, damagecause != "Drought")
+#alllevs2_wheat <- subset(alllevs2_wheat, damagecause != "Drought")
+
+#testing the frequency of damagecauses for wheat
+#alllevs4_wheat <- subset(alllevs2_wheat, loss != 0.000000)
+#alllevs4_wheat <- aggregate(alllevs4_wheat$loss, by = list(alllevs4_wheat$year, alllevs4_wheat$county), FUN = length)
+
+
+
 ```
 
 <br></br>
