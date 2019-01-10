@@ -374,6 +374,12 @@ Now subset to just those APPLES observations with a loss greater than zero (so a
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
 
+options( scipen = 0 )
+library(lmerTest)
+#changing levels for varied comparison of damagecause
+alllevs2_apples$damagecause = factor(alllevs2_apples$damagecause,levels(alllevs2_apples$damagecause)[c(6,1:5)])
+
+
 m2 <- lmer(log(loss) ~ year + damagecause + (1 | county), data = subset(alllevs2_apples, non_zero == 1))
 
 summary(m2)
@@ -420,8 +426,9 @@ coef_apples_exp$estimate <- as.numeric(coef_apples_exp$estimate)
 coef_apples_exp$stderror <- as.numeric(coef_apples_exp$stderror)
 
 library(data.table)
-setDT(coef_apples_exp, keep.rownames = TRUE)[]
+setDT(coef_apples_exp, keep.rownames = TRUE)
 colnames(coef_apples_exp) <- c("factors", "lower", "upper", "odds_ratio", "stderror")
+coef_apples_exp
 
 #library(lattice)
 #var <- factor(rownames(coef_apples_exp[1:4]))

@@ -161,6 +161,86 @@ leaflet(data = counties, options = leafletOptions(minZoom = 6, maxZoom = 6)) %>%
 /<div>
 <br></br>
 
+##Step 3: Entire PNW Overview of Insurance Loss: 1989-2015
+
+<div align="center">
+
+```{r message=FALSE, warning=FALSE, error=TRUE, echo=FALSE}
+#palouse_sumloss_aggregate <- subset(palouse_sumloss_aggregate, year >= 2001 & year <= 2015)
+
+#palouse_sumloss_1989_2015 <- subset(palouse_sumloss_aggregate, commodity == "WHEAT")
+
+palouse_sumloss_1989_2015 <- aggregate(Southern_ID_sumloss$loss, list(Southern_ID_sumloss$year), FUN = "sum")
+palouse_sumloss_1989_2015_dc <- aggregate(Southern_ID_sumloss$loss, list(Southern_ID_sumloss$damagecause), FUN = "sum")
+
+palouse_sumloss_1989_2015_c <- aggregate(Southern_ID_sumloss$loss, list(Southern_ID_sumloss$commodity), FUN = "sum")
+
+colnames(palouse_sumloss_1989_2015_c) <- c("commodity", "loss")
+
+c <- palouse_sumloss_1989_2015_c[order(palouse_sumloss_1989_2015_c$loss),] 
+
+c2 <- c[seq(dim(c)[1],1),]
+
+colnames(palouse_sumloss_1989_2015_dc) <- c("damagecause", "loss")
+
+dc <- palouse_sumloss_1989_2015_dc[order(palouse_sumloss_1989_2015_dc$loss),] 
+
+dc2 <- dc[seq(dim(dc)[1],1),]
+
+colnames(palouse_sumloss_1989_2015) <- c("year", "loss")
+
+#palouse_sumloss_2007_2015_aggregate <- palouse_sumloss_1989_2015[order(palouse_sumloss_1989_2015$loss),] 
+
+X <- palouse_sumloss_1989_2015
+
+#X <- palouse_sumloss_2007_2015_aggregate[order(palouse_sumloss_2007_2015_aggregate$loss),] 
+#colnames(X) <- c("damagecause", "loss")
+
+XX <- X
+#XX <- subset(X, loss > 1000000)
+YYY1 <- XX
+
+tt3 <- ttheme_default(core=list(fg_params=list(hjust=0, x=0.1)),
+                      rowhead=list(fg_params=list(hjust=0, x=0)))
+
+#YYY1<- YYY1[seq(dim(YYY1)[1],1),]
+YYY1$loss <- round(YYY1$loss, 0)
+#grid.table(YYY1, theme = tt3, rows = NULL)
+
+YYY2 <- YYY1
+YYY2$loss <- format(YYY2$loss,big.mark=",",scientific=FALSE)
+YYY2$loss <- paste("$", YYY2$loss, sep="")
+YYY2$loss <- gsub(" ", "", YYY2$loss, fixed = TRUE)
+
+dd2 <- cbind(YYY2[1:14, ], YYY2[15:28, ])
+colnames(dd2) <- c("year", "loss", "year", "loss")
+dd2[is.na(dd2)] <- ""
+
+
+par(mar=c(10.8, 7.1, 2.1, 2.1), mgp=c(6, 1, 0), las=0)
+#levels(YYY1$commodity)[1] <- "ADJ GROSS REVENUE"
+barplot(YYY1$loss, names.arg = YYY1$year, las = 3, yaxt="n", ylab = "Loss ($)", main = "PNW total insurance Loss by Year: 2001 - 2015", col = "lightblue", xlab = "Year") 
+pts <- pretty(YYY1$loss / 1000000)
+pts2 <- pretty(YYY1$loss)
+axis(2, las = 1, at = pts2, labels = paste(pts, "M", sep = ""))
+#abline(v = 14.5, lty = 2, color = "red")
+
+htmlTable(dd2,
+          cgroup = c("1989-2002", "2003-2015"),
+          n.cgroup = c(2, 2),
+          caption = "PNW total insurance loss by year, 2001-2015",
+          align = "c",
+          rnames = FALSE,
+          css.cell = "padding-left: .5em; padding-right: .5em;")
+
+
+```
+
+
+
+/<div>
+<br></br>
+
 ##Step 3: Palouse Region Overview of Insurance Loss FREQUENCY by Year: 1989-2015
 
 <div align="center">
