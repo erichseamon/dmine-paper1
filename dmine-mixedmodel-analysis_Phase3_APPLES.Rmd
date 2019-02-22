@@ -303,6 +303,13 @@ As such, these are not missing data, but actual zero values that we do not want 
 
 Here we run our hurdle technique for APPLES, using a generalized linear model with a binomal function to delineate between zero and non-zero values. Given this model,  Is our data normally distributed?  What (if any) outliers exist?  Are residuals well distributed - indicating normality?
 
+Model notation:
+
+non_zero = apples claims by county and year, with zero claims per county/year excluded
+
+m1 <- glm(non_zero ~  year + damagecause + county, data = alllevs2_apples, family = binomial(link = logit))
+
+
 ###Apples Non-zero Goodness of fit hoslem test
 
 ```{r message=FALSE, warning=FALSE, error = TRUE, echo=FALSE}
