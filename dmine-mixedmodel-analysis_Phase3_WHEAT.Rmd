@@ -384,9 +384,11 @@ library(lmerTest)
 alllevs2_wheat$damagecause = factor(alllevs2_wheat$damagecause,levels(alllevs2_wheat$damagecause)[c(3,1,2,4:7)])
 
 #changing levels for varied comparison of year
-x = factor(x,levels(x)[c(4,5,1:3)])
+#x = factor(x,levels(x)[c(4,5,1:3)])
 
-m2 <- lmer(log(loss) ~ year + damagecause + (1 | county), data = subset(alllevs2_wheat, non_zero == 1))
+options(na.action="na.fail")
+
+m2 <- lmer(log(loss) ~ year + damagecause + (1 | county), data = subset(alllevs2_wheat, non_zero == 1), na.action=na.omit)
 
 #m2 <- lmer(log(loss) ~ year + damagecause + (1 | county), data = alllevs2_wheat)
 
@@ -407,6 +409,44 @@ plot(m2)
 ```
 
 <br></br>
+
+###Actual vs. Predicted values
+
+```{r}
+
+alllevs2_wheat_nonzero = subset(alllevs2_wheat, non_zero == 1)
+
+alllevs2_wheat_nonzero <- na.omit(alllevs2_wheat_nonzero)
+
+alllevs2_wheat_nonzero$fit <- predict(m2)
+
+plot(predict(m2),log(alllevs2_wheat_nonzero$loss),
+      xlab="predicted",ylab="actual")
+ abline(a=0,b=1)
+
+
+```
+
+```{r}
+
+#alllevs2_wheat_nonzero$year <- as.integer(alllevs2_wheat_nonzero$year)
+selected <- c("2009", "2015", "2001")
+awn_2009_2015 <- alllevs2_wheat_nonzero[alllevs2_wheat_nonzero$year %in% selected,]
+
+library(ggplot2)
+    ggplot(awn_2009_2015,aes(damagecause, log10(loss), group=interaction(year, county), col=year, shape=county )) + 
+      #facet_grid(~N) +
+      geom_line(aes(y=fit), size=0.8) +
+      #geom_point(alpha = 0.3) + 
+      geom_hline(yintercept=0, linetype="dashed") +
+      scale_shape_manual(values=seq(0,25)) +
+
+      theme_bw()
+    
+ 
+
+```
+
 
 ###We examine the Wheat model coefficent estimates of our model output.
 
