@@ -20,11 +20,20 @@ knitr::opts_chunk$set(echo = TRUE, out.width='900px', out.height='700px', dpi=20
 #rmarkdown::render(input = "/dmine/code/git/dmine-paper1/dmine-mixedmodel-analysis_Phase1a.Rmd", output_file = paste("/tmp/dmine-mixedmodel-analysis_Phase1a.html", sep=""))
 
 ```
-## Introduction
+##AJAE Appendix for “Agricultural Insurance Analysis of the Pacific Northwest, 2001-2015”
 
-This analysis explores the relationships of agricultural commodity loss, at a county level, from 2001-2015, across the three state region of the Pacific Northwest (Washington, Idaho, and Oregon), and then focuses on the Inland Pacific Northwest (INPW - 26 county region that encapsulates portions of Washington, Idaho, and Oregon). 
+###Erich Seamon, Paul E. Gessler, John T. Abatzoglou, Philip Mote, Stephen Lee
 
-Here we explore the entire range of commodities and damage causes, identifying the top revenue loss commodities and their most pertinent damage causes - as indicated from the USDA's agricultural commodity loss insurance archive.  We also explore claim freqency, and finally zero in on the top 5 commodities for the region, and examine specific loss and claim frequency by year and damage cause.
+###Date: May 2019
+
+###Note: The material contained herein is supplementary to the article named in the title and published in the American Journal of Agricultural Economics (AJAE). This supplementary material contains the following items: 
+
+![](https://dmine.io/waf/img/Step1.png)
+
+
+###Supplemental Appendix Summary Statement
+
+This supplemental appendix documents the exploratory data analysis process Here we explore the relationships of agricultural commodity loss, at a county level, from 2001-2015, across the three state region of the Pacific Northwest (Washington, Idaho, and Oregon), and then focus in on the 26 county region of the Inland Pacific Northwest (IPNW). We examine the entire range of commodities and damage causes for the IPNW study area, identifying the top revenue loss commodities and their most pertinent damage causes, as indicated from the USDA's agricultural commodity loss insurance archive.  We also explore claim freqency, and finally zero in on the top 5 commodities for the region, and examine specific loss and claim frequency by year and damage cause.
 
 We perform several steps to examine the full set of data, and to narrow down factors to a usable form for further modeling analysis.
 <br></br>
@@ -50,34 +59,27 @@ We perform several steps to examine the full set of data, and to narrow down fac
 **Step 7.** IPNW region overview of Insurance Loss claim counts: 2001-2015
 <br></br>
 <br></br>
-**Step 8.** APPLES: IPNW region overview of Insurance Loss 2001-2015
-<br></br>
-<br></br>
-**Step 9.** BARLEY: IPNW region overview of Insurance Loss 2001-2015
-<br></br>
-<br></br>
-**Step 10.** WHEAT: IPNW region overview of Insurance Loss 2001-2015
-<br></br>
-<br></br>
-**Step 11.** CHERRIES: IPNW region overview of Insurance Loss 2001-2015
-<br></br>
-<br></br>
-**Step 12.** DRY PEAS: IPNW region overview of Insurance Loss 2001-2015
-<br></br>
-<br></br>
+**Step 8.** WHEAT: IPNW region overview of Insurance Loss 2001-2015
+
 
 ![](https://dmine.io/waf/img/Step1.png)
 
 
-##Step 1. Data Prep
+##Step 1: Data Preparation
 
-The first step is to load Pacific Northwest agricultural insurance commodity loss data, aggregate by county, damage cause and commodity, remove zeros, transform the loss values ($) into cube root and logrithmic outputs, and scale and center the data.  
+The first step was to load Pacific Northwest agricultural insurance commodity loss data, aggregate by county, damage cause and commodity, remove zeros, transform the loss values ($) into cube root and logrithmic outputs, and scale and center the data.  
 
-Original data file for all insurance claims, nationwide, can be found here:
+Original data file for all insurance claims for the Pacific Northwest, can be found here:
+
+https://github.com/erichseamon/paper-PHD1/blob/master/data/RMA_PNW_2001_2015.csv
 
 Aggregated data file, which summarizes data by year, county, commodity, and damage cause, for just the Pacific Northwest, can be found here:
 
+https://github.com/erichseamon/paper-PHD1/blob/master/data/RMA_damage_PNW_2001_2015.csv
+
 All code that generates the following graphs and tables, can be found here:
+
+https://github.com/erichseamon/paper-PHD1/
 
 
 
@@ -94,12 +96,13 @@ library(coefplot2)
 library(broom)
 library(htmlTable)
 library(gridExtra)
+library(kableExtra)
 
 #options(scipen=999)
 
 #load original data
 
-rma1988 <- read.csv("/dmine/data/USDA/crop_indemnity_txt/1988.txt", sep = "|", header = FALSE, strip.white = TRUE)
+rma1988 <- read.csv("https://raw.githubusercontent.com/erichseamon/paper-PHD1/master/data/1989.txt", sep = "|", header = FALSE, strip.white = TRUE)
 rma1989 <- read.csv("/dmine/data/USDA/crop_indemnity_txt/1989.txt", sep = "|", header = FALSE, strip.white = TRUE)
 rma1990 <- read.csv("/dmine/data/USDA/crop_indemnity_txt/1990.txt", sep = "|", header = FALSE, strip.white = TRUE)
 rma1991 <- read.csv("/dmine/data/USDA/crop_indemnity_txt/1991.txt", sep = "|", header = FALSE, strip.white = TRUE)
@@ -140,6 +143,17 @@ colnames(RMA) <- c("year", "state", "county", "commodity", "damagecause", "month
 
 RMA_PNW <- subset(RMA, state == "WA" | state == "OR" | state == "ID" )
 #write.csv(RMA_PNW, file = "/dmine/data/USDA/crop_indemnity_PNW/RMA_PNW_2001_2015.csv")
+
+RMA_PNW$lossperacre <- RMA_PNW$loss / RMA_PNW$acres
+
+RMA_PNW <- subset(RMA_PNW, month != "")
+
+RMA_PNW$cropyear <- RMA_PNW$year
+
+RMA_PNW$cropyear[RMA_PNW$monthcode >= 10] <- RMA_PNW$year + 1
+
+RMA_PNW <- subset(RMA_PNW, year != 2016)
+
 
 #---
 
@@ -197,6 +211,15 @@ RMA_damage_PNW <- subset(RMA_damage_combined, state == "WA" | state == "OR" | st
 RMA_damage_PNW <- subset(RMA_damage_PNW, county != "All Other Counties")
 write.csv(RMA_damage_PNW, file = "/dmine/data/USDA/crop_indemnity_PNW/RMA_damage_PNW_2001_2015.csv")
 
+RMA_Idaho <- subset(RMA_damage_PNW, state == "ID")
+RMA_Oregon <- subset(RMA_damage_PNW, state == "OR")
+RMA_Washington <- subset(RMA_damage_PNW, state == "WA")
+
+RMA_Idaho_IPNW <- subset(RMA_Idaho, county == "Idaho" | county == "Lewis" | county ==  "Nez Perce" | county ==  "Latah" | county ==  "Benewah")
+RMA_Oregon_IPNW <- subset(RMA_Oregon, county == "Wasco" | county ==  "Sherman" | county ==  "Gilliam" | county ==  "Morrow" | county ==  "Umatilla" | county ==  "Union" | county ==  "Wallowa")
+RMA_Washington_IPNW <- subset(RMA_Washington, county ==  "Douglas" | county ==  "Grant" | county ==  "Benton" | county ==  "Franklin" | county ==  "Walla Walla" | county ==  "Adams" | county ==  "Lincoln" | county ==  "Spokane" | county ==  "Whitman" | county ==  "Columbia" | county ==  "Garfield" | county ==  "Asotin")
+
+RMA_damage_IPNW <- rbind(RMA_Idaho_IPNW,RMA_Oregon_IPNW,RMA_Washington_IPNW)
 
 #-load summarized data
 Southern_ID_sumloss <- read.csv(text=getURL
@@ -322,21 +345,46 @@ palouse_sumloss_aggregate$scaled_inverse_loss <-
 
 #----
 
-
-knitr::kable(RMA_PNW[1:10,], format="markdown")
-
-knitr::kable(RMA_damage_PNW[1:10,], format="markdown")
-
-
-
 ```
+<br></br>
+<div align="left">
+
+###Step 1a: Original Insurance Loss Dataset - Pacific Northwest
+
+The following table is an example of the original data that was acquired from the USDA Risk Management Agency (RMA).  Each record represents an individual insurance claim.
+
+```{r message=FALSE, warning=FALSE, error=TRUE, echo=FALSE}
+
+knitr::kable(RMA_PNW[1:10,], format="markdown") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+<br></br>
+<div align="left">
+
+###Step 1b: Aggregated Insurance Loss Dataset - Pacific Northwest
+
+The following table is an example of an aggregated dataset derived from the original files.  Here we have summarized claims by year, county, commodity, and damage cause.  Each unique combination is summarized, which includes the total summarized loss, the number of claims, the total summarized acreage, loss per acre, loss per claim, and acres per claim.  This dataset was the basis for our data examination.
+
+```{r message=FALSE, warning=FALSE, error=TRUE, echo=FALSE}
+
+knitr::kable(RMA_damage_PNW[1:10,], format="markdown") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
 
 <br></br>
 <div align="left">
 
 ![](https://dmine.io/waf/img/Step1.png)
 
-##Step 2: PNW Study Area
+
+
+
+
+##Step 3: Pacific Northwest(PNW) Study Area
+
+The following map shows the three key agricultural regions that make up over 95% of all agricultural insurance loss for the three state region of Washington, Oregon, and Idaho.
 
 <div align="center">
 
@@ -455,8 +503,10 @@ addScaleBar(mapz, position = c("topright"), options = scaleBarOptions())
 <div align="left">
 
 ![](https://dmine.io/waf/img/Step1.png)
+<br></br>
+<div align="left">
 
-##Step 3: PNW insurance claim loss summary
+##Step 4: PNW insurance claim loss summary
 
 <div align="center">
 
@@ -641,6 +691,9 @@ htmlTable(dd2,
 <div align="left">
 
 ![](https://dmine.io/waf/img/Step1.png)
+
+<br></br>
+<div align="left">
 
 ##Step 4: PNW insurance claim freqency summary
 
@@ -884,10 +937,260 @@ ggplot(palouse_sumloss_1989_2015_loss_barplot, aes(fill=region, y=loss, x=commod
 
 ![](https://dmine.io/waf/img/Step1.png)
 
+<br></br>
+<div align="left">
+
+##Step 5: Principle Components Analysis (PCA)
+
+In Step 5, we use principle components analysis to examine the variation of damage causes and commodities, across counties and years.  
+
+<div align="center">
+
+```{r message=FALSE, warning=FALSE, error=TRUE, echo=FALSE, fig.width = 10, fig.height = 9}
+
+library(ggfortify)
+
+#PNW using commodity as loadings
+
+  library(reshape2) ; RMA_damage_PNW_transformed_commodity <- dcast(RMA_damage_PNW, county + state ~ commodity, value.var = c("loss"), sum)
+RMA_damage_PNW_transformed_commodity$statecounty <- paste(RMA_damage_PNW_transformed_commodity$county, "_", RMA_damage_PNW_transformed_commodity$state, sep="")
+rownames(RMA_damage_PNW_transformed_commodity) <- RMA_damage_PNW_transformed_commodity$statecounty
+RMA_damage_PNW_exogenous_commodity <- RMA_damage_PNW_transformed_commodity[,3:41]
+
+RMA_damage_PNW_exogenous_commodity <- RMA_damage_PNW_exogenous_commodity[-1]
+RMA_damage_PNW_exogenous_commodity <- RMA_damage_PNW_exogenous_commodity[-20]
+RMA_damage_PNW_exogenous_commodity <- RMA_damage_PNW_exogenous_commodity[-37]
+
+#PNW damage cause as loadings
+
+  library(reshape2) ; RMA_damage_PNW_transformed <- dcast(RMA_damage_PNW, county + state ~ damagecause, value.var = c("loss"), sum)
+RMA_damage_PNW_transformed$statecounty <- paste(RMA_damage_PNW_transformed$county, "_", RMA_damage_PNW_transformed$state, sep="")
+rownames(RMA_damage_PNW_transformed) <- RMA_damage_PNW_transformed$statecounty
+RMA_damage_PNW_exogenous <- RMA_damage_PNW_transformed[,3:32]
+
+#PNW damage cause as loadings using years as groups
+
+  library(reshape2) ; RMA_damage_PNW_transformed_year <- dcast(RMA_damage_PNW, year ~ damagecause, value.var = c("loss"), sum)
+#RMA_damage_PNW_transformed_year$statecounty <- paste(RMA_damage_PNW_transformed_year$county, "_", RMA_damage_PNW_transformed_year$state, sep="")
+rownames(RMA_damage_PNW_transformed_year) <- RMA_damage_PNW_transformed_year$year
+RMA_damage_PNW_exogenous_year <- RMA_damage_PNW_transformed_year[,2:31]
+
+#IPNW damage cause as loadings using years as groups
+
+ library(reshape2) ; RMA_damage_IPNW_transformed_year <- dcast(RMA_damage_IPNW, year ~ damagecause, value.var = c("loss"), sum)
+#RMA_damage_PNW_transformed_year$statecounty <- paste(RMA_damage_PNW_transformed_year$county, "_", RMA_damage_PNW_transformed_year$state, sep="")
+rownames(RMA_damage_IPNW_transformed_year) <- RMA_damage_IPNW_transformed_year$year
+RMA_damage_IPNW_exogenous_year <- RMA_damage_IPNW_transformed_year[,2:28]
+
+#PNW damage cause as loadings using months as groups
+
+#remove negatives related to lossperacre calc
+RMA_PNW_noneg <- subset(RMA_PNW, lossperacre != Inf)
+RMA_PNW_noneg2 <- subset(RMA_PNW_noneg, lossperacre >=0 )
+RMA_PNW_noneg3 <- subset(RMA_PNW_noneg2, month !="" )
+
+
+
+  library(reshape2) ; RMA_damage_PNW_transformed_month <- dcast(RMA_PNW_noneg3, month ~ damagecause, value.var = c("loss"), mean)
+
+is.nan.data.frame <- function(x)
+do.call(cbind, lapply(x, is.nan))
+
+RMA_damage_PNW_transformed_month[is.nan(RMA_damage_PNW_transformed_month)] <- 0
+
+#RMA_damage_PNW_transformed_year$statecounty <- paste(RMA_damage_PNW_transformed_year$county, "_", RMA_damage_PNW_transformed_year$state, sep="")
+rownames(RMA_damage_PNW_transformed_month) <- RMA_damage_PNW_transformed_month$month
+RMA_damage_PNW_exogenous_month <- RMA_damage_PNW_transformed_month[,2:31]
+
+#PNW wheat
+
+RMA_damage_PNW_wheat <- subset(RMA_damage_PNW, commodity == "WHEAT")
+
+library(reshape2) ; RMA_damage_PNW_transformed_wheat <- dcast(RMA_damage_PNW_wheat, county + state ~ damagecause, value.var = c("loss"), sum)
+RMA_damage_PNW_transformed_wheat$statecounty <- paste(RMA_damage_PNW_transformed_wheat$county, "_", RMA_damage_PNW_transformed_wheat$state, sep="")
+rownames(RMA_damage_PNW_transformed_wheat) <- RMA_damage_PNW_transformed_wheat$statecounty
+RMA_damage_PNW_exogenous_wheat <- RMA_damage_PNW_transformed_wheat[,3:27]
+
+#PNW apples
+
+RMA_damage_PNW_apples <- subset(RMA_damage_PNW, commodity == "APPLES")
+
+  library(reshape2) ; RMA_damage_PNW_transformed_apples <- dcast(RMA_damage_PNW_apples, county + state ~ damagecause, value.var = c("loss"), sum)
+RMA_damage_PNW_transformed_apples$statecounty <- paste(RMA_damage_PNW_transformed_apples$county, "_", RMA_damage_PNW_transformed_apples$state, sep="")
+rownames(RMA_damage_PNW_transformed_apples) <- RMA_damage_PNW_transformed_apples$statecounty
+RMA_damage_PNW_exogenous_apples <- RMA_damage_PNW_transformed_apples[,3:24]
+
+#PNW barley
+
+RMA_damage_PNW_barley <- subset(RMA_damage_PNW, commodity == "BARLEY")
+
+  library(reshape2) ; RMA_damage_PNW_transformed_barley <- dcast(RMA_damage_PNW_barley, county + state ~ damagecause, value.var = c("loss"), sum)
+RMA_damage_PNW_transformed_barley$statecounty <- paste(RMA_damage_PNW_transformed_barley$county, "_", RMA_damage_PNW_transformed_barley$state, sep="")
+rownames(RMA_damage_PNW_transformed_barley) <- RMA_damage_PNW_transformed_barley$statecounty
+RMA_damage_PNW_exogenous_barley <- RMA_damage_PNW_transformed_barley[,3:23]
+
+#just the IPNW
+
+RMA_damage_IPNW$log10loss <- log10(RMA_damage_IPNW$loss)
+
+ library(reshape2) ; RMA_damage_IPNW_transformed <- dcast(RMA_damage_IPNW, county + state ~ damagecause, value.var = c("loss"), sum)
+RMA_damage_IPNW_transformed$statecounty <- paste(RMA_damage_IPNW_transformed$county, "_", RMA_damage_IPNW_transformed$state, sep="")
+rownames(RMA_damage_IPNW_transformed) <- RMA_damage_IPNW_transformed$statecounty
+RMA_damage_IPNW_exogenous <- RMA_damage_IPNW_transformed[,3:29]
+
+#just the IPNW 2015
+
+RMA_damage_IPNW_2015 <- subset(RMA_damage_IPNW, year == 2009)
+
+ library(reshape2) ; RMA_damage_IPNW_transformed_2015 <- dcast(RMA_damage_IPNW_2015, county + state ~ damagecause, value.var = c("loss"), sum)
+RMA_damage_IPNW_transformed_2015$statecounty <- paste(RMA_damage_IPNW_transformed_2015$county, "_", RMA_damage_IPNW_transformed_2015$state, sep="")
+rownames(RMA_damage_IPNW_transformed_2015) <- RMA_damage_IPNW_transformed_2015$statecounty
+RMA_damage_IPNW_exogenous_2015 <- RMA_damage_IPNW_transformed_2015[,3:21]
+
+
+
+#all PNW by damage
+par(mar=c(8, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+
+fit <- princomp(RMA_damage_PNW_exogenous, cor=TRUE)
+autoplot(prcomp(RMA_damage_PNW_exogenous, center = TRUE, scale = TRUE), frame = TRUE, frame.type = 'norm', data = RMA_damage_PNW_transformed, colour = 'state', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous)) + theme(legend.position = "none") + ggtitle("Principle Components: IPNW insurance loss by county\nwith damage cause loadings: 2001 to 2015") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+par(mar=c(8, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+
+#PNW using year as group - with damage cause as loadings
+#fit <- princomp(RMA_damage_PNW_exogenous_year, cor=TRUE, scale = TRUE, center = TRUE)
+autoplot(prcomp(RMA_damage_PNW_exogenous_year, center = TRUE, scale = TRUE),  data = RMA_damage_PNW_transformed_year, colour = 'year', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_year)) + theme(legend.position = "none") + ggtitle("Principle Components: PNW insurance loss, by year\nwith damage cause loadings ") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+
+
+
+#autoplot(prcomp(RMA_damage_PNW_exogenous_year, center = TRUE, scale = TRUE), data = RMA_damage_PNW_transformed_year, colour = 'year', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 3, legend = FALSE) + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_year)) + theme(legend.position = "none")
+
+#PNW using month as group - with damage cause as loadings
+#fit <- princomp(RMA_damage_PNW_exogenous_month, cor=TRUE, scale = TRUE, center = TRUE)
+autoplot(prcomp(RMA_damage_PNW_exogenous_month, center = TRUE, scale = TRUE),  data = RMA_damage_PNW_transformed_month, colour = 'month', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_month)) + theme(legend.position = "none") + ggtitle("Principle Components: PNW insurance loss, by month\nwith damage cause loadings ") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+
+
+#autoplot(prcomp(RMA_damage_PNW_exogenous_month), data = RMA_damage_PNW_transformed_month, colour = 'month', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 3, legend = FALSE) + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_month)) + theme(legend.position = "none")
+
+#PNW wheat
+
+fit <- princomp(RMA_damage_PNW_exogenous_wheat, cor=TRUE)
+#autoplot(prcomp(RMA_damage_PNW_exogenous_wheat, scale = TRUE, center = TRUE), data = RMA_damage_PNW_transformed_wheat, colour = 'county', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 3, legend = FALSE) + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_wheat)) + theme(legend.position = "none")
+
+autoplot(prcomp(RMA_damage_PNW_exogenous_wheat, center = TRUE, scale = TRUE), frame = TRUE, frame.type = 'norm', data = RMA_damage_PNW_transformed_wheat, colour = 'state', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_wheat)) + theme(legend.position = "none") + ggtitle("Principle Components: PNW wheat insurance loss, by county\nwith damage cause loadings ") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+
+#PNW apples
+
+#autoplot(prcomp(RMA_damage_PNW_exogenous_apples), data = RMA_damage_PNW_transformed_apples, colour = 'county', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 3, legend = FALSE) + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_apples)) + theme(legend.position = "none")
+
+autoplot(prcomp(RMA_damage_PNW_exogenous_apples, center = TRUE, scale = TRUE), frame = TRUE, frame.type = 'norm', data = RMA_damage_PNW_transformed_apples, colour = 'state', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_apples)) + theme(legend.position = "none") + ggtitle("Principle Components: PNW apples insurance loss, by county\nwith damage cause loadings ") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+#PNW barley
+
+#autoplot(prcomp(RMA_damage_PNW_exogenous_barley), data = RMA_damage_PNW_transformed_barley, colour = 'county', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 3, legend = FALSE) + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_barley)) + theme(legend.position = "none")
+
+autoplot(prcomp(RMA_damage_PNW_exogenous_barley, center = TRUE, scale = TRUE), frame = TRUE, frame.type = 'norm', data = RMA_damage_PNW_transformed_barley, colour = 'state', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_barley)) + theme(legend.position = "none") + ggtitle("Principle Components: PNW barley insurance loss, by county\nwith damage cause loadings ") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+
+#PNW by commodity
+
+fit <- princomp(RMA_damage_PNW_exogenous_commodity, cor=TRUE)
+#autoplot(prcomp(RMA_damage_PNW_exogenous_commodity, scale = TRUE, center = TRUE), data = RMA_damage_PNW_transformed_commodity, colour = 'county', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 3, legend = FALSE) + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_commodity)) + theme(legend.position = "none")
+
+autoplot(prcomp(RMA_damage_PNW_exogenous_commodity, center = TRUE, scale = TRUE), frame = TRUE, frame.type = 'norm', data = RMA_damage_PNW_transformed_commodity, colour = 'state', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_PNW_exogenous_commodity)) + theme(legend.position = "none") + ggtitle("Principle Components: PNW insurance loss, by county \nwith commodity loadings ") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+
+#IPNW
+
+#RMA_damage_IPNW_exogenous <- scale(RMA_damage_IPNW_exogenous, scale = TRUE, center = TRUE)
+pca_RMA_damage_IPNW_exogenous <- prcomp(RMA_damage_IPNW_exogenous, scale = TRUE, center = TRUE)
+
+autoplot(prcomp(RMA_damage_IPNW_exogenous_factor, scale = TRUE, center = TRUE), frame = TRUE, frame.type = 'norm', data = RMA_damage_IPNW_transformed, colour = 'state', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_IPNW_exogenous)) + theme(legend.position = "none") + ggtitle("Principle Components: IPNW insurance loss, by county\nwith damage cause loadings ") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+#IPNW with years as the group
+
+autoplot(prcomp(RMA_damage_IPNW_exogenous_year, center = TRUE, scale = TRUE), data = RMA_damage_IPNW_transformed_year, loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()  + geom_text(vjust=-1, label=rownames(RMA_damage_IPNW_exogenous_year)) + theme(legend.position = "none") + ggtitle("Principle Components: IPNW insurance loss, by year\nwith damage cause loadings, grouped by Ag Region") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+#autoplot(prcomp(RMA_damage_IPNW_exogenous, scale = TRUE, center = TRUE), data = RMA_damage_IPNW_transformed, colour = 'county', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 3, legend = FALSE) + geom_text(vjust=-1, label=rownames(RMA_damage_IPNW_exogenous)) + theme(legend.position = "none")
+
+#IPNW 2015
+
+#RMA_damage_IPNW_exogenous <- scale(RMA_damage_IPNW_exogenous, scale = TRUE, center = TRUE)
+pca_RMA_damage_IPNW_exogenous_2015 <- prcomp(RMA_damage_IPNW_exogenous_2015, scale = TRUE, center = TRUE)
+#autoplot(prcomp(RMA_damage_IPNW_exogenous_2015, scale = TRUE, center = TRUE), data = RMA_damage_IPNW_transformed_2015, colour = 'state', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 3, legend = FALSE) + geom_text(vjust=-1, label=rownames(RMA_damage_IPNW_exogenous_2015)) + theme(legend.position = "none")
+
+autoplot(prcomp(RMA_damage_IPNW_exogenous_2015, center = TRUE, scale = TRUE), frame = TRUE, frame.type = 'norm', data = RMA_damage_IPNW_transformed_2015, colour = 'state', loadings = TRUE, loadings.label = TRUE, loadings.label.size  = 3, label = FALSE, label.size = 2, legend = FALSE)  + theme_bw()   + geom_text(vjust=-1, label=rownames(RMA_damage_IPNW_exogenous_2015)) + theme(legend.position = "none") + ggtitle("Principle Components: 2015 IPNW insurance loss, by county\nwith damage cause loadings") + theme(plot.title = element_text(size =28, family = "Serif")) + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.5), hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), hjust = 1, family = "Serif"))
+
+pca_RMA_damage_IPNW_exogenous$rotation
+
+#plot(pca_RMA_damage_IPNW_exogenous$rotation)
+
+std_dev <- pca_RMA_damage_IPNW_exogenous_2015$sdev
+
+pr_var <- std_dev^2
+
+pr_var[1:10]
+
+prop_varex <- pr_var/sum(pr_var)
+
+plot(prop_varex, xlab = "Principal Component",
+             ylab = "Proportion of Variance Explained",
+             type = "b")
+
+plot(cumsum(prop_varex), xlab = "Principal Component",
+              ylab = "Cumulative Proportion of Variance Explained",
+              type = "b")
+
+topN <- 15
+load.rot <- pca_RMA_damage_IPNW_exogenous$rotation
+names(load.rot[,1][order(abs(load.rot[,1]),decreasing=TRUE)][1:topN])
+
+
+#names(RMA_damage_PNW_exogenous) <- gsub(" ", "_", names(RMA_damage_PNW_exogenous))
+#names(RMA_damage_PNW_exogenous) <- gsub("/", "_", names(RMA_damage_PNW_exogenous))
+#names(RMA_damage_PNW_exogenous) <- gsub("\\(", "", names(RMA_damage_PNW_exogenous))
+#names(RMA_damage_PNW_exogenous) <- gsub(")", "", names(RMA_damage_PNW_exogenous))
+#names(RMA_damage_PNW_exogenous) <- gsub("-", "_", names(RMA_damage_PNW_exogenous))
+
+
+#factor analysis on IPNW data
+
+#number of factors to use.  Initially limit the number of factors to the top damage causes with the most amounts of loss
+
+RMA_damage_IPNW_exogenous_factor <- cbind(RMA_damage_IPNW_exogenous[2:3], RMA_damage_IPNW_exogenous[5:6], RMA_damage_IPNW_exogenous[8], RMA_damage_IPNW_exogenous[11], RMA_damage_IPNW_exogenous[13:14], RMA_damage_IPNW_exogenous[16:17])
+
+library(nFactors)
+ev <- eigen(cor(RMA_damage_IPNW_exogenous_factor)) # get eigenvalues
+ap <- parallel(subject=nrow(RMA_damage_IPNW_exogenous_factor),var=ncol(RMA_damage_IPNW_exogenous_factor),
+  rep=100,cent=.05)
+nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+plotnScree(nS)
+
+#factanal
+fit <- factanal(x = RMA_damage_IPNW_exogenous_factor, factors = 3, rotation = "varimax")
+load <- fit$loadings[,1:2] 
+plot(load,type="n") # set up plot 
+text(load,labels=names(RMA_damage_IPNW_exogenous_factor),cex=.7) # add variable names
+
+library(FactoMineR)
+result <- PCA(RMA_damage_IPNW_exogenous_factor) # graphs generated automatically
+
+```
+
+
+
+
+
+<br></br>
+<div align="left">
+
 ##Step 5: IPNW Study Area
 
 <div align="center">
-```{r message=FALSE, warning=FALSE, error=TRUE, echo=FALSE}
+```{r message=FALSE, warning=FALSE, error=TRUE, echo=FALSE, fig.width = 10, fig.height = 9}
 
 library(data.table)
 library(maptools)
@@ -956,6 +1259,9 @@ addScaleBar(mapz, position = c("topright"), options = scaleBarOptions())
 <br></br>
 
 ![](https://dmine.io/waf/img/Step1.png)
+
+<br></br>
+<div align="left">
 
 ##Step 6: IPNW insurance claim loss summary
 
@@ -1162,6 +1468,9 @@ title(main="IPNW insurance loss per acre by damage cause: 2001 to 2015", line = 
 <br></br>
 
 ![](https://dmine.io/waf/img/Step1.png)
+
+<br></br>
+<div align="left">
 
 ##Step 7: IPNW insurance claim loss summary
 
@@ -1373,6 +1682,8 @@ htmlTable(YYY2,
 
 ![](https://dmine.io/waf/img/Step1.png)
 
+<br></br>
+<div align="left">
 
 ## STEP 8: APPLES, 2001-2015 for the IPNW
 
@@ -1518,6 +1829,15 @@ YYY$loss <- as.numeric(as.character(YYY$loss))
 YYY1<- YYY[order(YYY$loss),] 
 YYY1 <- YYY1[ nrow(YYY1):1, ]
 
+#--year
+palouse_sumloss_year <- aggregate(APPLES$loss, list(APPLES$year), FUN = "sum")
+colnames(palouse_sumloss_year) <- c("year", "loss")
+
+#--county
+
+palouse_sumloss_county <- aggregate(APPLES$loss, list(APPLES$county), FUN = "sum")
+colnames(palouse_sumloss_county) <- c("county", "loss")
+
 p <- plot_ly(YYY, labels = ~damagecause, values = ~loss, type = 'pie',
              textposition = 'inside',
              textinfo = 'label+percent',
@@ -1532,6 +1852,34 @@ p <- plot_ly(YYY, labels = ~damagecause, values = ~loss, type = 'pie',
          xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
          yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
 
+p <- plot_ly(palouse_sumloss_year, labels = ~year, values = ~loss, type = 'pie',
+             textposition = 'inside',
+             textinfo = 'label+percent',
+             insidetextfont = list(color = '#FFFFFF'),
+             hoverinfo = 'text',
+             text = ~paste('$', loss, ' million'),
+             marker = list(colors = colors,
+                           line = list(color = '#FFFFFF', width = 1)),
+             #The 'pull' attribute can also be used to create space between the sectors
+             showlegend = TRUE) %>%
+  layout(title = 'Top Years for APPLES, Palouse Region: 1989-2015',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+p <- plot_ly(palouse_sumloss_county, labels = ~county, values = ~loss, type = 'pie',
+             textposition = 'inside',
+             textinfo = 'label+percent',
+             insidetextfont = list(color = '#FFFFFF'),
+             hoverinfo = 'text',
+             text = ~paste('$', loss, ' million'),
+             marker = list(colors = colors,
+                           line = list(color = '#FFFFFF', width = 1)),
+             #The 'pull' attribute can also be used to create space between the sectors
+             showlegend = TRUE) %>%
+  layout(title = 'Top Counties for APPLES, Palouse Region: 1989-2015',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
            
 #p
 
@@ -1541,8 +1889,42 @@ YYY2$loss <- format(YYY2$loss,big.mark=",",scientific=FALSE)
 YYY2$loss <- paste("$", YYY2$loss, sep="")
 YYY2$loss <- gsub(" ", "", YYY2$loss, fixed = TRUE)
 
+#--year
+palouse_sumloss_year <- aggregate(APPLES$loss, list(APPLES$year), FUN = "sum")
+colnames(palouse_sumloss_year) <- c("year", "loss")
 
+#--county
 
+palouse_sumloss_county <- aggregate(APPLES$loss, list(APPLES$county), FUN = "sum")
+colnames(palouse_sumloss_county) <- c("county", "loss")
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_county$loss, names.arg = palouse_sumloss_county$county, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_county$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_county$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Damage Cause",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="Apples insurance loss by commodity: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Counties", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_year$loss, names.arg = palouse_sumloss_year$year, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_year$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_year$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Years",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="Apples insurance loss by year: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Years", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
 
 par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
 barplot(YYY1$loss, names.arg = YYY1$damagecause, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
@@ -1557,6 +1939,7 @@ axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
 title(main="Apples insurance loss by damage cause: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
 title(xlab="Damage Cause", line=11, cex.lab = 1.4)
 title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
+
 
 htmlTable(YYY2,
           cgroup = c("2001-2015"),
@@ -2097,7 +2480,7 @@ interaction.plot(x.factor     = psc3$year,
                  xlab="")
                  #main="Annual Apples Insurance Claim Frequency \n by county for the IPNW Study Area, 1989-2015: HAIL/FROST/FREEZE", las = 2)
 
-title(main="Annual Apples Insurance Claim Frequency by county for the IPNW \nStudy Area, 2001-2015: HAIL/FROST/FREEZE", adj = 0, cex.main = 1.9)
+title(main="Annual IPNW Apples Insurance Claim Frequency by county\n2001-2015: HAIL/FROST/FREEZE", adj = 0, cex.main = 1.9)
 title(xlab="Years", line=4, cex.lab = 1.4)
 title(ylab="Apples Claim Frequency: Hail/Frost/Freeze", line=3.5, cex.lab = 1.4)
 
@@ -2159,7 +2542,7 @@ interaction.plot(x.factor     = psc3$year,
                  xlab="")
                  #main="Annual Apples Insurance Claim Frequency \n by county for the IPNW Study Area, 1989-2015: ALL DAMAGE CAUSES", las = 2)
 
-title(main="Apples Insurance Claim Frequency by county for the IPNW \nStudy Area, 2001-2015: All Damage Causes", adj = 0, cex.main = 1.9)
+title(main="Annual IPNW Apples Insurance Claim Frequency by county\n2001-2015: All Damage Causes", adj = 0, cex.main = 1.9)
 title(xlab="Years", line=4, cex.lab = 1.4)
 title(ylab="Apples Claim Frequency: All Damage Causes", line=3.5, cex.lab = 1.4)
 
@@ -2192,6 +2575,9 @@ title(ylab="Apples Claim Frequency: All Damage Causes", line=3.5, cex.lab = 1.4)
 ```
 
 ![](https://dmine.io/waf/img/Step1.png)
+
+<br></br>
+<div align="left">
 
 ## STEP 9: BARLEY, 2001-2015 for the IPNW
 
@@ -2259,7 +2645,42 @@ YYY2$loss <- paste("$", YYY2$loss, sep="")
 YYY2$loss <- gsub(" ", "", YYY2$loss, fixed = TRUE)
 
 
+#--year
+palouse_sumloss_year <- aggregate(BARLEY$loss, list(BARLEY$year), FUN = "sum")
+colnames(palouse_sumloss_year) <- c("year", "loss")
 
+#--county
+
+palouse_sumloss_county <- aggregate(BARLEY$loss, list(BARLEY$county), FUN = "sum")
+colnames(palouse_sumloss_county) <- c("county", "loss")
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_county$loss, names.arg = palouse_sumloss_county$county, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_county$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_county$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Damage Cause",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="IPNW Barley insurance loss by commodity: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Counties", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_year$loss, names.arg = palouse_sumloss_year$year, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_year$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_year$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Years",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="IPNW Barley insurance loss by year: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Years", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
 
 par(mar=c(12, 6.1, 6, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
 
@@ -2657,6 +3078,9 @@ title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
 
 ![](https://dmine.io/waf/img/Step1.png)
 
+<br></br>
+<div align="left">
+
 ## STEP 10: WHEAT, 2001-2015 for the IPNW
 
 <div align="center">
@@ -2727,15 +3151,51 @@ levels(YYY1$damagecause)[levels(YYY1$damagecause)=="Other (Snow-Lightning-Etc.)"
 levels(YYY1$damagecause)[8] <- "Excessive Moisture"
 YYY1$damagecause <- factor(YYY1$damagecause)
 
-par(mar=c(13, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+#--year
+palouse_sumloss_year <- aggregate(WHEAT$loss, list(WHEAT$year), FUN = "sum")
+colnames(palouse_sumloss_year) <- c("year", "loss")
 
+#--county
+
+palouse_sumloss_county <- aggregate(WHEAT$loss, list(WHEAT$county), FUN = "sum")
+colnames(palouse_sumloss_county) <- c("county", "loss")
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_county$loss, names.arg = palouse_sumloss_county$county, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_county$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_county$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Damage Cause",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="IPNW wheat insurance loss by commodity: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Counties", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_year$loss, names.arg = palouse_sumloss_year$year, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_year$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_year$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Years",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="IPNW wheat insurance loss by year: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Years", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
+
+par(mar=c(13, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
 
 barplot(YYY1$loss, names.arg = YYY1$damagecause, las = 3, cex.names = 1.4, yaxt="n", col = "lightblue")
 pts <- pretty(YYY1$loss / 1000000)
 pts2 <- pretty(YYY1$loss)
 axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
 
-title(main="Wheat insurance loss by damage cause: 2001 to 2015", line = 2, adj = 0, cex.main = 1.9)
+title(main="IPNW wheat insurance loss by damage cause: 2001 to 2015", line = 2, adj = 0, cex.main = 1.9)
 title(xlab="Damage Cause", line=11.5, cex.lab = 1.4)
 title(ylab="Wheat insurance claim loss ($)", line=5, cex.lab = 1.4)
 
@@ -2754,19 +3214,58 @@ htmlTable(YYY2,
 ##Step 7: Nationwide Wheat Prices per metric ton: 2001-2015 
 
 wheatprice <- read.csv("/dmine/data/USDAprices/wheatprices_1998_2017.csv", header=TRUE, strip.white =TRUE)
-wheatprice_year <- aggregate(wheatprice$Price, list(wheatprice$Year), FUN="mean")
-colnames(wheatprice_year) <- c("year", "price")
+colnames(wheatprice) <- c("year", "month","price")
+wheatprice_all <- subset(wheatprice, year >= 2001 & year <= 2015)
 
-wheatprice_year <- subset(wheatprice_year, year >= 2001 & year <= 2015)
+cpi <- data.frame(read.csv("/dmine/data/FRED/cpi/CPIAUCSL2001_2015.csv", header = TRUE, strip.white = TRUE))
+
+wheatprice_all$price_adjusted <- wheatprice_all$price * cpi$ratio
+colnames(wheatprice_all) <- c("year", "month","price", "price_adjusted")
 
 par(mar=c(5.8, 7.1, 4, 2.1), family = 'serif', mgp=c(3, 1, 0), las=0)
-barplot(wheatprice_year$price, names.arg = wheatprice_year$year, las = 3, yaxt = 'n', cex.names = 1.4, col = "lightblue", xlab = "", ylab = "")
+
+plot(wheatprice_all$price_adjusted, las = 3, xaxt = 'n', yaxt = 'n', las = 2, cex.names = 1.4, col = "lightblue", xlab = "", ylab = "", ylim=c(100,500))
+lines(wheatprice_all$price_adjusted, col = "blue")
+points(wheatprice_all$price, las = 3, xaxt = 'n', cex.names = 1.4, col = "lightblue", xlab = "", ylab = "")
+lines(wheatprice_all$price, col = "red")
+
+pts <- pretty(max(wheatprice_all$price_adjusted):min(wheatprice_all$price))
+pts2 <- pretty(max(wheatprice_all$price_adjusted):min(wheatprice_all$price))
 
 
-title(main="US Wheat prices per metric ton ($): 2001 to 2015", line = 2, adj = 0, cex.main = 1.9)
+i <- seq(1,nrow(wheatprice_all),12) # which labels to plot
+for(ii in i)
+  axis(1, at = ii, cex.axis = 1.4, labels = wheatprice_all[ii,1],  lwd = 0, las = 3)
+
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, sep = ""))
+
+legend(1, 500, legend=c("Wheat price", "Wheat price adjusted \n for inflation"),
+       col=c("red", "blue"), lty=1:1, cex=1.4)
+
+title(main="U.S. wheat prices per metric ton ($): 2001 to 2015", line = 2, adj = 0, cex.main = 1.9)
 title(xlab="Years", line=4, cex.lab = 1.4)
 title(ylab="Price per metric ton ($)", line=3.5, cex.lab = 1.4)
-axis(2, las = 1, cex.axis = 1.4, at = c(0,50,100,150,200,250,300,350), labels = c(0,50,100,150,200,250,300,350))
+
+#--wheat production PNW 2001 - 2015
+
+wheatproduction <- read.csv("/dmine/data/NASS/wheatproduction_WA_ID_OR_2001_2015.csv", header=TRUE, strip.white =TRUE)
+colnames(wheatprice) <- c("year", "month","price")
+
+ggplot(wheatproduction, aes(fill=State, y=Value, x=Year)) + 
+    geom_bar( stat="identity") + theme_bw() + theme(panel.grid.major=element_blank(),panel.grid.minor=element_blank()) + ggtitle("PNW Wheat production, 2001 to 2015 ") + theme(axis.title.y = element_text(family = "Serif", size=16), axis.title.x = element_text(family = "Serif", size = 16), axis.text.x = element_text(size=rel(1.9), angle = 90, hjust = 1, family = "Serif"), axis.text.y = element_text(size=rel(1.5), family = "Serif")) + theme(plot.title = element_text(size =28, family = "Serif"))  +  scale_x_discrete(name = "Years", limits=c(2001:2015)) + theme(legend.text=element_text(family = "Serif", size=14))  + theme(legend.title=element_text(family = "Serif", size=16, face = "bold")) + theme(plot.title = element_text(size=24, family = "Serif", face = "bold")) + scale_y_continuous(name = "Wheat production ($)", label = unit_format(unit = "M", scale = 1e-6, digits = 0)) + theme(legend.position="bottom") + scale_fill_manual("legend", values = c("IDAHO" = "gray", "OREGON" = "blue", "WASHINGTON" = "red"))
+
+#wheatprice_year <- aggregate(wheatprice_all$price, list(wheatprice$year), FUN="mean")
+#colnames(wheatprice_year) <- c("year", "price")
+
+
+#par(mar=c(5.8, 7.1, 4, 2.1), family = 'serif', mgp=c(3, 1, 0), las=0)
+#barplot(wheatprice_year$price, names.arg = wheatprice_year$year, las = 3, yaxt = 'n', cex.names = 1.4, col = "lightblue", xlab = "", ylab = "")
+
+#title(main="US Wheat prices per metric ton ($): 2001 to 2015", line = 2, adj = 0, cex.main = 1.9)
+#title(xlab="Years", line=4, cex.lab = 1.4)
+#title(ylab="Price per metric ton ($)", line=3.5, cex.lab = 1.4)
+#axis(2, las = 1, cex.axis = 1.4, at = c(0,50,100,150,200,250,300,350), labels = c(0,50,100,150,200,250,300,350))
+
 ```
 
 <div align="center">
@@ -3313,7 +3812,7 @@ interaction.plot(x.factor     = psc_drought2$year,
                  xlab='')
                  #main="Annual Wheat Insurance Claim Frequency \n by county for the IPNW Study Area, 2001-2015: DROUGHT", las = 2)
 
-title(main="Wheat Insurance Claim Frequency by county for the IPNW \nStudy Area, 2001-2015: DROUGHT", adj = 0, cex.main = 1.9)
+title(main="Annual IPNW Wheat Insurance Claim Frequency by county\n2001-2015: Drought", adj = 0, cex.main = 1.9)
 title(xlab="Years", line=4, cex.lab = 1.4)
 title(ylab="Wheat Claim Frequency: Drought", line=3.5, cex.lab = 1.4)
 pts <- pretty(psc_drought$count)
@@ -3380,7 +3879,7 @@ interaction.plot(x.factor     = psc_drought3$year,
                  xlab="")
                  #main="Annual Wheat Insurance Claim Frequency \n by county for the IPNW Study Area, 2001-2015: ALL DAMAGE CAUSES", las = 2)
 
-title(main="Wheat Insurance Claim Frequency by county for the IPNW \nStudy Area, 2001-2015: ALL DAMAGE CAUSES", adj = 0, cex.main = 1.9)
+title(main="Annual IPNW Wheat Insurance Claim Frequency by county\n2001-2015: All Damage Causes", adj = 0, cex.main = 1.9)
 title(xlab="Years", line=4, cex.lab = 1.4)
 title(ylab="Wheat Claim Frequency: All Damage Causes", line=3.5, cex.lab = 1.4)
 
@@ -3416,6 +3915,9 @@ title(ylab="Wheat Claim Frequency: All Damage Causes", line=3.5, cex.lab = 1.4)
 <br></br>
 
 ![](https://dmine.io/waf/img/Step1.png)
+
+<br></br>
+<div align="left">
 
 ## STEP 11: CHERRIES, 2001-2015 for the IPNW
 
@@ -3484,6 +3986,45 @@ YYY2$loss <- round(YYY2$loss, digits = 0)
 YYY2$loss <- format(YYY2$loss,big.mark=",",scientific=FALSE)
 YYY2$loss <- paste("$", YYY2$loss, sep="")
 YYY2$loss <- gsub(" ", "", YYY2$loss, fixed = TRUE)
+
+
+#--year
+palouse_sumloss_year <- aggregate(CHERRIES$loss, list(CHERRIES$year), FUN = "sum")
+colnames(palouse_sumloss_year) <- c("year", "loss")
+
+#--county
+
+palouse_sumloss_county <- aggregate(CHERRIES$loss, list(CHERRIES$county), FUN = "sum")
+colnames(palouse_sumloss_county) <- c("county", "loss")
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_county$loss, names.arg = palouse_sumloss_county$county, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_county$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_county$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Damage Cause",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="IPNW cherries insurance loss by commodity: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Counties", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_year$loss, names.arg = palouse_sumloss_year$year, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_year$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_year$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Years",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="IPNW cherries insurance loss by year: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Years", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
+
 
 
 par(mar=c(12.8, 6.1, 4, 2.1), family = "serif", mgp=c(4, 1, 0), las=0)
@@ -3864,6 +4405,9 @@ title(ylab="Cherries insurance claim loss ($)", line=5, cex.lab = 1.4)
 
 ![](https://dmine.io/waf/img/Step1.png)
 
+<br></br>
+<div align="left">
+
 ## STEP 12: DRY PEAS, 2001-2015 for the IPNW
 
 <div align="center">
@@ -3932,6 +4476,43 @@ YYY2$loss <- round(YYY2$loss, digits = 0)
 YYY2$loss <- format(YYY2$loss,big.mark=",",scientific=FALSE)
 YYY2$loss <- paste("$", YYY2$loss, sep="")
 YYY2$loss <- gsub(" ", "", YYY2$loss, fixed = TRUE)
+
+#--year
+palouse_sumloss_year <- aggregate(DRYPEAS$loss, list(DRYPEAS$year), FUN = "sum")
+colnames(palouse_sumloss_year) <- c("year", "loss")
+
+#--county
+
+palouse_sumloss_county <- aggregate(DRYPEAS$loss, list(DRYPEAS$county), FUN = "sum")
+colnames(palouse_sumloss_county) <- c("county", "loss")
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_county$loss, names.arg = palouse_sumloss_county$county, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_county$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_county$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Damage Cause",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="IPNW dry peas insurance loss by commodity: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Counties", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
+
+par(mar=c(12.5, 6.1, 4, 2.1), family = 'serif', mgp=c(4, 1, 0), las=0)
+barplot(palouse_sumloss_year$loss, names.arg = palouse_sumloss_year$year, cex.names = 1.4, las = 3, yaxt="n",  col = "lightblue")
+pts <- pretty(palouse_sumloss_year$loss / 1000000)
+pts2 <- pretty(palouse_sumloss_year$loss)
+axis(2, las = 1, at = pts2, cex.axis = 1.4, labels = paste(pts, "M", sep = ""))
+
+#mtext(text = "Years",
+#      side = 1,#side 1 = bottom
+#      line = 8)
+
+title(main="IPNW dry peas insurance loss by year: 2001 to 2015", line = 2, cex.main = 1.9, adj = 0)
+title(xlab="Years", line=8, cex.lab = 1.4)
+title(ylab="Insurance claim loss ($)", line=4, cex.lab = 1.4)
 
 par(mar=c(12.8, 6.1, 6, 2.1), family = "serif", mgp=c(4, 1, 0), las=0)
 levels(YYY1$damagecause)[8] <- "Excessive Moisture"
@@ -4212,7 +4793,7 @@ addScaleBar(map, position = c("topright"), options = scaleBarOptions())
 
 par(mar=c(10,8,6,2), family = 'serif', mgp = c(5, 1, 0)) 
 
-  barplot(DRYPEAS_damage_excessivemoisture2011$loss, names.arg = DRYPEAS_damage_excessivemoisture2011$NAME, yaxt = 'n', col = "lightblue", las = 3, cex.main = 1.5, cex.lab = 1.4, cex.axis = 1.4, cex.names = 1.4, font.lab = 1, font.axis = 1, outline = FALSE)
+  barplot(DRYPEAS_damage_excessivemoisture2011$loss, names.arg = DRYPEAS_damage_excessivemoisture2011$county, yaxt = 'n', col = "lightblue", las = 3, cex.main = 1.5, cex.lab = 1.4, cex.axis = 1.4, cex.names = 1.4, font.lab = 1, font.axis = 1, outline = FALSE)
   
 pts <- pretty(DRYPEAS_damage_excessivemoisture2011$loss / 1000000)
 pts2 <- pretty(DRYPEAS_damage_excessivemoisture2011$loss)
@@ -4221,7 +4802,7 @@ axis(2, las = 1, at = pts2, labels = paste(pts, "M", sep = ""))
 
 title(main="IPNW dry peas insurance loss due \nto excessive moisture: 2011", line = 2, cex.main = 1.9, adj = 0)
 title(xlab="Counties", line=7, cex.lab = 1.4)
-title(ylab="Cherries insurance claim loss ($)", line=5, cex.lab = 1.4)
+title(ylab="Dry peas insurance claim loss ($)", line=5, cex.lab = 1.4)
 
   
   
